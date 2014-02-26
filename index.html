@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+	<textarea style="height:500px;width:400px;" id="test">
+// test.js
+var a = 1
+var b = 2
+var f = {}
+alert(a)
+f.test = function(){
+	alert(b)
+}
+f.test()
+
+// test2.js
+require("js/modules/test.js");
+f.test();
+
+// 使用：
+&lt;script&gt;
+	define(function() {
+		require("js/modules/test2.js");
+		alert(++b);
+	})
+&lt;/script&gt;
+	</textarea>
+</body>
+<script type="text/javascript" src="/src/define.js"></script>
+<script type="text/javascript">
+	define(function() {
+		require("test/test.js");
+		alert(++b)
+	})
+</script>
+</html>

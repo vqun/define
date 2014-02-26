@@ -126,6 +126,10 @@
 		"module": /require\("\s*([^\s]+)\s*"\)/gm,
 		"funcBody": /function\s*\([^\r\n]*\)\s*\{\s*((.|\s)*)\}/gm
 	}
+	var Code_Settup = {
+		"prefix": "(function(){var exports = {};",
+		"postfix": ";return exports})()"
+	}
 	// The completedModules are all the modules that are evaled
 	// The loadingModules are the modules that are loading or evaling
 	var Cached = {
@@ -216,7 +220,12 @@
 		}
 	}
 	Module.prototype.eval = function() {
-		eval.call(Global, this.moduleCode);
+		eval.call(
+			Global,
+			Code_Settup.prefix+
+			this.moduleCode+
+			Code_Settup.postfix
+		);
 		Cached.completedModules[this.id] = true;
 		Cached.loadingModules[this.id] = undefined;
 		return this.notice();
