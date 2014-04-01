@@ -1,3 +1,7 @@
-require("test/test.js");
-++b
-f.test();
+var t = require("test/test.js");
+++t.b
+t.f.test();
+
+exports.test = function() {
+	console.log(++t.b)
+}

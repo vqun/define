@@ -123,19 +123,20 @@
 (function(Global, undefined) {
 	var REGEXP = {
 		"jsComment": /((\/\*([^*]|[\r\n]|(\*+([^*\/]|[\r\n])))*\*+\/)|(\/\/.*))/gm,
-		"module": /require\("\s*([^\s]+)\s*"\)/gm,
+		"module": /([\r\n]?\s*var\s+(.+)\s*=\s*)?require\(['"]\s*([^\s]+)\s*['"]\)/gm,
 		"funcBody": /function\s*\([^\r\n]*\)\s*\{\s*((.|\s)*)\}/gm
 	}
 	var Code_Settup = {
-		"prefix": "(function(){var exports = {};",
+		"prefix": "var __Saber_defined__temp__ = (function(){var exports = {};",
 		"postfix": ";return exports})()"
 	}
-	// The completedModules are all the modules that are evaled
-	// The loadingModules are the modules that are loading or evaling
+	// The completedModules are all the modules those are evaled
+	// The loadingModules are the modules those are loading or evaling
 	var Cached = {
 		"completedModules": {},
 		"loadingModules": {},
-		"modules": {}
+		"modules": {},
+		"moduleInterfaces": {}
 	}
 	// The main
 	function define(mod) {
@@ -186,6 +187,7 @@
 		this.uncomplete = 0;
 		this.lock = false;
 		this.queue = [];
+		this.dependencyNameModule = []; // exposed interfaces
 	}
 	Module.prototype.defined = function(module) {
 		var modCode = module.toString();
@@ -193,9 +195,12 @@
 		modCode = RemoveComments(modCode);
 		this.moduleCode = modCode;
 		// 2. find out the dependent modules
-		var depModules = CheckoutModules(modCode);
-		this.dependencies = depModules;
-		this.dependent = this.uncomplete = depModules.length;
+		var depModulesInfo = CheckoutModules(modCode);
+		this.moduleCode = depModulesInfo.mod;
+		this.dependencies = depModulesInfo.depModules;
+		this.dependencyNameModule = depModulesInfo.dependencyNameModule;
+		this.dependent = this.uncomplete = depModulesInfo.depModules.length;
+		depModulesInfo = null;
 		if(!this.dependent) {
 			return this.eval();
 		}
@@ -220,12 +225,20 @@
 		}
 	}
 	Module.prototype.eval = function() {
-		eval.call(
-			Global,
+		var interfaceFixed = "";
+		for(var k = 0,len=this.dependent;k<len;k++) {
+			var curr = this.dependencyNameModule[k];
+			curr["name"] && (interfaceFixed += "var " + curr["name"] + "=" + "Cached.moduleInterfaces[\"__Saber__defined__"+curr["module"]+"\"];");
+		}
+		eval(
 			Code_Settup.prefix+
+			interfaceFixed+
 			this.moduleCode+
 			Code_Settup.postfix
 		);
+		Cached.moduleInterfaces[this.id] = __Saber_defined__temp__;
+		__Saber_defined__temp__ = null;
+
 		Cached.completedModules[this.id] = true;
 		Cached.loadingModules[this.id] = undefined;
 		return this.notice();
@@ -248,14 +261,22 @@
 	Global.define = define;
 	Global.require = function() {};
 	function RemoveComments(str) {
-		return str.replace(REGEXP.jsComment, "")//.replace(/(^\r|\n$)|^\s+|\s+$/gm, ";")
+		return str.replace(REGEXP.jsComment, "")
+		//.replace(/(^\r|\n$)|^\s+|\s+$/gm, ";")
 	}
 	function CheckoutModules(mod) {
-		var ret = [];
+		var ret = {};
+		ret.depModules = [];
+		ret.dependencyNameModule = [];
 		var _mod = null;
-		while(_mod = REGEXP.module.exec(mod)) {
-			ret.push(_mod[1])
-		}
+		ret.mod = mod.replace(REGEXP.module, function(m0,m1,m2,m3) {
+			ret.depModules.push(m3);
+			ret.dependencyNameModule.push({
+				"name": m2,
+				"module": m3
+			});
+			return ""
+		})
 		return ret
 	}
 })(this)
