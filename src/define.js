@@ -130,6 +130,10 @@
 		"prefix": "var __Saber_defined__temp__ = (function(){var exports = {};",
 		"postfix": ";return exports})()"
 	}
+
+	var COMMON = {
+		"moduleIdPrefix": "__Saber__defined__"
+	}
 	// The completedModules are all the modules those are evaled
 	// The loadingModules are the modules those are loading or evaling
 	var Cached = {
@@ -147,7 +151,7 @@
 			var _mod = mod.toString().replace(REGEXP.funcBody, "$1")||"";
 			mod = new Date().getTime();
 		}
-		var modID = "__Saber__defined__" + mod;
+		var modID = COMMON.moduleIdPrefix + mod;
 		var module = Cached.modules[modID] || (Cached.modules[modID] = new Module(mod, modID));
 		module.parents.push(this);
 		// If the module was already completed, just notice the dependenting module
@@ -228,7 +232,12 @@
 		var interfaceFixed = "";
 		for(var k = 0,len=this.dependent;k<len;k++) {
 			var curr = this.dependencyNameModule[k];
-			curr["name"] && (interfaceFixed += "var " + curr["name"] + "=" + "Cached.moduleInterfaces[\"__Saber__defined__"+curr["module"]+"\"];");
+			curr["name"] && (
+				interfaceFixed += "var " + curr["name"] + "=" +
+				"Cached.moduleInterfaces[\"" +
+				COMMON.moduleIdPrefix +
+				curr["module"]+"\"];"
+			);
 		}
 		eval(
 			Code_Settup.prefix+
